@@ -79,6 +79,13 @@
 </head>
 
 <body>
+    <div class="container mt-3">
+    <div class="btn-group" role="group">
+        <button class="btn btn-secondary" onclick="setLanguage('ja')">日本語</button>
+        <button class="btn btn-secondary" onclick="setLanguage('en')">English</button>
+        <button class="btn btn-secondary" onclick="setLanguage('zh')">简体中文</button>
+    </div>
+</div>
     <h1 class="title">Custom HTML DoS</h1>
 
     <!-- URL入力セクション -->
@@ -207,6 +214,65 @@
             document.getElementById("totalrequests").innerText = totalrequests;
             document.getElementById("totalerrors").innerText = totalerrors;
         }
+        const translations = {
+    'ja': {
+        'title': 'カスタム HTML DoS',
+        'enterUrl': 'ターゲットURLを入力',
+        'urlPlaceholder': 'https://example.com',
+        'attackFreq': '1秒あたりの攻撃回数:',
+        'startBtn': '攻撃開始',
+        'pauseBtn': '攻撃停止',
+        'alertMsg': '有効なURLを入力してください。',
+        'statusTitle': 'セッションステータス',
+        'desc1': 'ターゲットサイトへのGETリクエスト数とエラー数が表示されます。',
+        'totalReq': '総リクエスト数:',
+        'totalErr': '総エラー数:',
+        'footer': 'これはウェブサイトの堅牢性テスト用のカスタム実装です。'
+    },
+    'en': {
+        'title': 'Custom HTML DoS',
+        'enterUrl': 'Enter Target URL',
+        'urlPlaceholder': 'https://example.com',
+        'attackFreq': 'Attacks per Second:',
+        'startBtn': 'Start Attack',
+        'pauseBtn': 'Pause Attack',
+        'alertMsg': 'Please enter a valid URL.',
+        'statusTitle': 'Session Status',
+        'desc1': 'The number of GET requests and error responses is shown below.',
+        'totalReq': 'Total number of requests:',
+        'totalErr': 'Total number of errors:',
+        'footer': 'This is a custom implementation for testing website robustness.'
+    },
+    'zh': {
+        'title': '自定义 HTML DoS',
+        'enterUrl': '输入目标 URL',
+        'urlPlaceholder': 'https://example.com',
+        'attackFreq': '每秒攻击次数:',
+        'startBtn': '开始攻击',
+        'pauseBtn': '暂停攻击',
+        'alertMsg': '请输入有效的 URL。',
+        'statusTitle': '会话状态',
+        'desc1': '以下显示对目标网站的 GET 请求数和错误响应数。',
+        'totalReq': '总请求数:',
+        'totalErr': '总错误数:',
+        'footer': '这是一个用于测试网站稳健性的自定义实现。'
+    }
+};
+
+function setLanguage(lang) {
+    const t = translations[lang];
+    document.querySelector('.title').innerText = t.title;
+    document.querySelector('h3').innerText = t.enterUrl;
+    document.getElementById('targetUrl').placeholder = t.urlPlaceholder;
+    document.querySelector('label[for="attackFrequency"]').innerText = t.attackFreq;
+    document.querySelector('.btn-primary').innerText = attack ? t.pauseBtn : t.startBtn;
+    document.getElementById('alertMessage').innerText = t.alertMsg;
+    document.querySelector('.desc h3').innerText = t.statusTitle;
+    document.querySelectorAll('.desc p')[0].innerText = t.desc1;
+    document.querySelectorAll('.desc p')[1].firstChild.textContent = t.totalReq;
+    document.querySelectorAll('.desc p')[2].firstChild.textContent = t.totalErr;
+    document.querySelector('.footer').innerText = t.footer;
+}
     </script>
 
 </body>
